@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>金屬材料重量計算機</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --primary:#2563eb;
+  --primary-dark:#1d4ed8;
+  --primary-bg:#eff6ff;
+  --bg:#f1f5f9;
+  --surface:#fff;
+  --text:#1e293b;
+  --text-secondary:#64748b;
+  --border:#e2e8f0;
+  --error:#dc2626;
+  --radius:8px;
+}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+.container{
+  max-width:480px;
+  margin:0 auto;
+  padding:16px 16px 48px;
+}
+
+/* header */
+.header{
+  text-align:center;
+  padding:8px 0 20px;
+}
+.header h1{
+  font-size:22px;
+  font-weight:700;
+  letter-spacing:0.5px;
+}
+.header p{
+  font-size:13px;
+  color:var(--text-secondary);
+  margin-top:4px;
+}
+
+/* section */
+.section{
+  margin-bottom:20px;
+}
+.section-title{
+  font-size:13px;
+  font-weight:700;
+  color:var(--text-secondary);
+  margin-bottom:10px;
+}
+
+/* material chips */
+.material-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.material-chip{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:10px 6px;
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:var(--radius);
+  cursor:pointer;
+  transition:all 0.15s ease;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+  position:relative;
+}
+.material-chip:active{
+  transform:scale(0.97);
+}
+.material-chip .name{
+  font-size:14px;
+  font-weight:600;
+}
+.material-chip .den{
+  font-size:11px;
+  color:var(--text-secondary);
+  margin-top:2px;
+}
+.material-chip.active{
+  border-color:var(--primary);
+  background:var(--primary-bg);
+}
+.material-chip.active .name{
+  color:var(--primary-dark);
+}
+.material-chip.active .den{
+  color:var(--primary);
+}
+
+/* shape cards */
+.shape-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.shape-card{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:16px 8px 12px;
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:var(--radius);
+  cursor:pointer;
+  transition:all 0.15s ease;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+.shape-card:active{
+  transform:scale(0.97);
+}
+.shape-card svg{
+  width:40px;
+  height:40px;
+  color:var(--text-secondary);
+  margin-bottom:8px;
+  transition:color 0.15s ease;
+  display:block;
+}
+.shape-card .label{
+  font-size:13px;
+  font-weight:600;
+}
+.shape-card.active{
+  border-color:var(--primary);
+  background:var(--primary-bg);
+}
+.shape-card.active svg{
+  color:var(--primary);
+}
+.shape-card.active .label{
+  color:var(--primary-dark);
+}
+
+/* input fields */
+.input-group{
+  margin-bottom:12px;
+}
+.input-label{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  font-size:13px;
+  font-weight:600;
+  color:var(--text-secondary);
+  margin-bottom:6px;
+}
+.input-label .hint{
+  font-weight:400;
+  font-size:11px;
+  color:#94a3b8;
+}
+.input-field{
+  width:100%;
+  padding:12px 14px;
+  font-size:16px;
+  border:1.5px solid var(--border);
+  border-radius:var(--radius);
+  background:var(--surface);
+  color:var(--text);
+  outline:none;
+  transition:border-color 0.15s ease;
+  -webkit-appearance:none;
+  appearance:none;
+}
+.input-field:focus{
+  border-color:var(--primary);
+}
+.input-field::placeholder{
+  color:#94a3b8;
+  font-size:14px;
+}
+
+/* calculate button */
+.calc-btn{
+  width:100%;
+  padding:15px;
+  font-size:16px;
+  font-weight:700;
+  color:#fff;
+  background:var(--primary);
+  border:none;
+  border-radius:var(--radius);
+  cursor:pointer;
+  transition:background 0.15s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.calc-btn:active{
+  transform:scale(0.98);
+  background:var(--primary-dark);
+}
+
+/* results */
+.results{
+  margin-top:24px;
+  padding:24px 20px 20px;
+  background:var(--surface);
+  border-radius:var(--radius);
+  box-shadow:0 1px 4px rgba(0,0,0,0.08);
+  display:none;
+}
+.results.show{
+  display:block;
+  animation:fadeSlideIn 0.3s ease;
+}
+@keyframes fadeSlideIn{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.result-row{
+  display:flex;
+  align-items:baseline;
+  justify-content:center;
+  gap:4px;
+  margin-bottom:4px;
+}
+.result-value{
+  font-size:36px;
+  font-weight:800;
+  color:var(--primary);
+  line-height:1.1;
+}
+.result-unit{
+  font-size:16px;
+  color:var(--text-secondary);
+  font-weight:700;
+}
+.result-label{
+  text-align:center;
+  font-size:12px;
+  color:var(--text-secondary);
+  margin-bottom:20px;
+}
+.result-details{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.detail-item{
+  padding:10px 12px;
+  background:var(--bg);
+  border-radius:6px;
+}
+.detail-item .l{
+  font-size:11px;
+  color:var(--text-secondary);
+  margin-bottom:2px;
+}
+.detail-item .v{
+  font-size:14px;
+  font-weight:600;
+}
+
+/* error */
+.error-msg{
+  color:var(--error);
+  font-size:13px;
+  margin-top:8px;
+  text-align:center;
+  display:none;
+}
+.error-msg.show{
+  display:block;
+}
+</style>
+</head>
+<body>
+
+<div class="container" id="app">
+  <div class="header">
+    <h1>金屬材料重量計算機</h1>
+    <p>長度單位：mm &nbsp;·&nbsp; 重量單位：kg</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">選擇材質</div>
+    <div class="material-grid" id="materialGrid"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">選擇形狀</div>
+    <div class="shape-grid" id="shapeGrid"></div>
+  </div>
+
+  <div class="section" id="inputSection">
+    <div class="section-title">尺寸輸入</div>
+    <div id="inputFields"></div>
+  </div>
+
+  <div class="error-msg" id="errorMsg">請填寫所有尺寸欄位</div>
+
+  <button class="calc-btn" id="calcBtn">計算重量</button>
+
+  <div class="results" id="results">
+    <div class="result-row">
+      <span class="result-value" id="resultValue">0.000</span>
+      <span class="result-unit">kg</span>
+    </div>
+    <div class="result-label">總重量</div>
+    <div class="result-details">
+      <div class="detail-item">
+        <div class="l">材質</div>
+        <div class="v" id="detailMaterial">—</div>
+      </div>
+      <div class="detail-item">
+        <div class="l">密度</div>
+        <div class="v" id="detailDensity">—</div>
+      </div>
+      <div class="detail-item">
+        <div class="l">體積</div>
+        <div class="v" id="detailVolume">—</div>
+      </div>
+      <div class="detail-item">
+        <div class="l">形狀</div>
+        <div class="v" id="detailShape">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const materials = [
+  { id:'steel', name:'鋼鐵', density:7.85 },
+  { id:'aluminum', name:'6061鋁合金', density:2.70 },
+  { id:'brass', name:'高力黃銅', density:8.50 },
+  { id:'aluminum_bronze', name:'鋁青銅', density:7.70 },
+  { id:'phosphor_bronze', name:'磷青銅', density:8.80 },
+  { id:'copper', name:'純紅銅', density:8.96 },
+];
+
+const shapes = [
+  {
+    id:'round', name:'實心圓棒',
+    fields:[
+      { key:'diameter', label:'直徑', placeholder:'請輸入直徑' },
+      { key:'length', label:'長度', placeholder:'請輸入長度' },
+    ],
+    calc(vals, d){
+      const {diameter:dia, length:len} = vals;
+      return Math.PI * dia * dia * len * d / 4_000_000;
+    },
+    volume(vals){
+      return Math.PI * vals.diameter * vals.diameter * vals.length / 4;
+    },
+  },
+  {
+    id:'tube', name:'管材',
+    fields:[
+      { key:'od', label:'外徑', placeholder:'請輸入外徑' },
+      { key:'wall', label:'壁厚', placeholder:'請輸入壁厚' },
+      { key:'length', label:'長度', placeholder:'請輸入長度' },
+    ],
+    calc(vals, d){
+      const {od, wall, length:len} = vals;
+      const id = od - 2 * wall;
+      return Math.PI * (od*od - id*id) * len * d / 4_000_000;
+    },
+    volume(vals){
+      const id = vals.od - 2 * vals.wall;
+      return Math.PI * (vals.od*vals.od - id*id) * vals.length / 4;
+    },
+    validate(vals){
+      if(vals.wall >= vals.od / 2){
+        return '壁厚不得大於或等於外徑的一半';
+      }
+      return null;
+    },
+  },
+  {
+    id:'rect', name:'矩形',
+    fields:[
+      { key:'width', label:'寬度', placeholder:'請輸入寬度' },
+      { key:'height', label:'高度', placeholder:'請輸入高度' },
+      { key:'length', label:'長度', placeholder:'請輸入長度' },
+    ],
+    calc(vals, d){
+      return vals.width * vals.height * vals.length * d / 1_000_000;
+    },
+    volume(vals){
+      return vals.width * vals.height * vals.length;
+    },
+  },
+  {
+    id:'hex', name:'實心六角形',
+    fields:[
+      { key:'acrossFlats', label:'對邊距', placeholder:'請輸入對邊距離' },
+      { key:'length', label:'長度', placeholder:'請輸入長度' },
+    ],
+    calc(vals, d){
+      const {acrossFlats:af, length:len} = vals;
+      return (Math.sqrt(3) / 2) * af * af * len * d / 1_000_000;
+    },
+    volume(vals){
+      return (Math.sqrt(3) / 2) * vals.acrossFlats * vals.acrossFlats * vals.length;
+    },
+  },
+];
+
+let selectedMaterial = materials[0].id;
+let selectedShape = shapes[0].id;
+
+const $ = (id) => document.getElementById(id);
+const materialGrid = $('materialGrid');
+const shapeGrid = $('shapeGrid');
+const inputFields = $('inputFields');
+const calcBtn = $('calcBtn');
+const results = $('results');
+const errorMsg = $('errorMsg');
+const resultValue = $('resultValue');
+const detailMaterial = $('detailMaterial');
+const detailDensity = $('detailDensity');
+const detailVolume = $('detailVolume');
+const detailShape = $('detailShape');
+
+function renderMaterials(){
+  materialGrid.innerHTML = '';
+  materials.forEach(m => {
+    const chip = document.createElement('div');
+    chip.className = 'material-chip' + (m.id === selectedMaterial ? ' active' : '');
+    chip.innerHTML = `<div class="name">${m.name}</div><div class="den">${m.density} g/cm&sup3;</div>`;
+    chip.addEventListener('click', () => selectMaterial(m.id));
+    materialGrid.appendChild(chip);
+  });
+}
+
+function renderShapes(){
+  shapeGrid.innerHTML = '';
+  shapes.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'shape-card' + (s.id === selectedShape ? ' active' : '');
+    card.innerHTML = shapeIcon(s.id) + `<div class="label">${s.name}</div>`;
+    card.addEventListener('click', () => selectShape(s.id));
+    shapeGrid.appendChild(card);
+  });
+}
+
+function shapeIcon(id){
+  const icons = {
+    round:`<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="currentColor" opacity=".85"/></svg>`,
+    tube:`<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="24" cy="24" r="8" fill="none" stroke="currentColor" stroke-width="3"/></svg>`,
+    rect:`<svg viewBox="0 0 48 48"><rect x="6" y="8" width="36" height="32" rx="3" fill="currentColor" opacity=".85"/></svg>`,
+    hex:`<svg viewBox="0 0 48 48"><polygon points="24,4 44,14 44,34 24,44 4,34 4,14" fill="currentColor" opacity=".85"/></svg>`,
+  };
+  return icons[id] || '';
+}
+
+function selectMaterial(id){
+  selectedMaterial = id;
+  document.querySelectorAll('.material-chip').forEach((el, i) => {
+    el.classList.toggle('active', materials[i].id === id);
+  });
+  results.classList.remove('show');
+}
+
+function selectShape(id){
+  selectedShape = id;
+  document.querySelectorAll('.shape-card').forEach((el, i) => {
+    el.classList.toggle('active', shapes[i].id === id);
+  });
+  renderInputs();
+  results.classList.remove('show');
+  errorMsg.classList.remove('show');
+}
+
+function renderInputs(){
+  const shape = shapes.find(s => s.id === selectedShape);
+  inputFields.innerHTML = '';
+  shape.fields.forEach(f => {
+    const group = document.createElement('div');
+    group.className = 'input-group';
+    group.innerHTML = `
+      <label class="input-label">
+        <span>${f.label} (mm)</span>
+      </label>
+      <input type="number" class="input-field" id="input_${f.key}"
+             placeholder="${f.placeholder}" min="0" step="any"
+             inputmode="decimal" autocomplete="off">
+    `;
+    const inp = group.querySelector('input');
+    inp.addEventListener('keydown', e => { if(e.key === 'Enter') calculate(); });
+    inp.addEventListener('input', () => {
+      results.classList.remove('show');
+      errorMsg.classList.remove('show');
+    });
+    inputFields.appendChild(group);
+  });
+  const first = inputFields.querySelector('input');
+  if(first) setTimeout(() => first.focus(), 120);
+}
+
+function calculate(){
+  const material = materials.find(m => m.id === selectedMaterial);
+  const shape = shapes.find(s => s.id === selectedShape);
+
+  const vals = {};
+  let valid = true;
+
+  shape.fields.forEach(f => {
+    const inp = $('input_' + f.key);
+    const v = parseFloat(inp.value);
+    if(isNaN(v) || v <= 0){
+      valid = false;
+    }
+    vals[f.key] = v;
+  });
+
+  if(!valid){
+    errorMsg.textContent = '請填寫所有尺寸欄位（須為正數）';
+    errorMsg.classList.add('show');
+    results.classList.remove('show');
+    return;
+  }
+
+  if(shape.validate){
+    const msg = shape.validate(vals);
+    if(msg){
+      errorMsg.textContent = msg;
+      errorMsg.classList.add('show');
+      results.classList.remove('show');
+      return;
+    }
+  }
+
+  errorMsg.classList.remove('show');
+
+  const weight = shape.calc(vals, material.density);
+  const volMM3 = shape.volume(vals);
+  const volCM3 = volMM3 / 1000;
+
+  resultValue.textContent = formatWeight(weight);
+  detailMaterial.textContent = material.name;
+  detailDensity.textContent = material.density + ' g/cm&sup3;';
+  detailVolume.textContent = volCM3.toFixed(1) + ' cm&sup3;';
+  detailShape.textContent = shape.name;
+
+  results.classList.add('show');
+}
+
+function formatWeight(kg){
+  if(kg <= 0) return '0.000';
+  if(kg < 0.01) return kg.toFixed(4);
+  if(kg < 1) return kg.toFixed(3);
+  if(kg < 1000) return kg.toFixed(2);
+  return kg.toFixed(1);
+}
+
+calcBtn.addEventListener('click', calculate);
+renderMaterials();
+renderShapes();
+renderInputs();
+</script>
+
+</body>
+</html>
